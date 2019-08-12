@@ -110,9 +110,14 @@ def _image_tensor_input_placeholder(input_shape=None):
   """Returns input placeholder and a 4-D uint8 image tensor."""
   if input_shape is None:
     input_shape = (None, None, None, 3)
+
+  placeholder_keys = tf.placeholder(
+      dtype=tf.uint32,
+      shape=[None],
+      name='input_keys')
   input_tensor = tf.placeholder(
       dtype=tf.uint8, shape=input_shape, name='image_tensor')
-  return input_tensor, input_tensor
+  return input_tensor, input_tensor,placeholder_keys
 
 
 def _tf_example_input_placeholder():
@@ -123,6 +128,11 @@ def _tf_example_input_placeholder():
   """
   batch_tf_example_placeholder = tf.placeholder(
       tf.string, shape=[None], name='tf_example')
+
+  placeholder_keys = tf.placeholder(
+      dtype=tf.uint32,
+      shape=[None],
+      name='input_keys')
   def decode(tf_example_string_tensor):
     tensor_dict = tf_example_decoder.TfExampleDecoder().decode(
         tf_example_string_tensor)
@@ -134,7 +144,7 @@ def _tf_example_input_placeholder():
               elems=batch_tf_example_placeholder,
               dtype=tf.uint8,
               parallel_iterations=32,
-              back_prop=False))
+              back_prop=False), placeholder_keys)
 
 
 def _encoded_image_string_tensor_input_placeholder():
@@ -147,6 +157,10 @@ def _encoded_image_string_tensor_input_placeholder():
       dtype=tf.string,
       shape=[None],
       name='encoded_image_string_tensor')
+  placeholder_keys = tf.placeholder(
+      dtype=tf.uint32,
+      shape=[None],
+      name='input_keys')
   def decode(encoded_image_string_tensor):
     image_tensor = tf.image.decode_image(encoded_image_string_tensor,
                                          channels=3)
@@ -158,7 +172,7 @@ def _encoded_image_string_tensor_input_placeholder():
               elems=batch_image_str_placeholder,
               dtype=tf.uint8,
               parallel_iterations=32,
-              back_prop=False))
+              back_prop=False), placeholder_keys)
 
 
 input_placeholder_fn_map = {
@@ -169,7 +183,7 @@ input_placeholder_fn_map = {
 }
 
 
-def add_output_tensor_nodes(postprocessed_tensors,
+def add_output_tensor_nodes(postprocessed_tensors,placeholder_keys,
                             output_collection_name='inference_op'):
   """Adds output nodes for detection boxes and scores.
 
@@ -256,8 +270,8 @@ def add_output_tensor_nodes(postprocessed_tensors,
   if masks is not None:
     outputs[detection_fields.detection_masks] = tf.identity(
         masks, name=detection_fields.detection_masks)
-  outputs["key"] = tf.identity(
-        tf.constant(5), name="key")
+  outputs["output_keys"] = tf.identity(
+        placeholder_keys, name="output_keys")
   for output_key in outputs:
     tf.add_to_collection(output_collection_name, outputs[output_key])
 
@@ -267,6 +281,7 @@ def add_output_tensor_nodes(postprocessed_tensors,
 def write_saved_model(saved_model_path,
                       frozen_graph_def,
                       inputs,
+                      keys,
                       outputs):
   """Writes SavedModel to disk.
 
@@ -290,7 +305,9 @@ def write_saved_model(saved_model_path,
       builder = tf.saved_model.builder.SavedModelBuilder(saved_model_path)
 
       tensor_info_inputs = {
-          'inputs': tf.saved_model.utils.build_tensor_info(inputs)}
+          'inputs': tf.saved_model.utils.build_tensor_info(inputs),
+          'input_keys': tf.saved_model.utils.build_tensor_info(keys),
+          }
       tensor_info_outputs = {}
       for k, v in outputs.items():
         tensor_info_outputs[k] = tf.saved_model.utils.build_tensor_info(v)
@@ -330,7 +347,7 @@ def write_graph_and_checkpoint(inference_graph_def,
       saver.save(sess, model_path)
 
 
-def _get_outputs_from_inputs(input_tensors, detection_model,
+def _get_outputs_from_inputs(input_tensors, placeholder_keys, detection_model,
                              output_collection_name):
   inputs = tf.cast(input_tensors, dtype=tf.float32)
   preprocessed_inputs, true_image_shapes = detection_model.preprocess(inputs)
@@ -338,8 +355,8 @@ def _get_outputs_from_inputs(input_tensors, detection_model,
       preprocessed_inputs, true_image_shapes)
   postprocessed_tensors = detection_model.postprocess(
       output_tensors, true_image_shapes)
-  return add_output_tensor_nodes(postprocessed_tensors,
-                                 output_collection_name)
+  return add_output_tensor_nodes(postprocessed_tensors, placeholder_keys
+                                 output_collection_name )
 
 
 def build_detection_graph(input_type, detection_model, input_shape,
@@ -353,10 +370,11 @@ def build_detection_graph(input_type, detection_model, input_shape,
       raise ValueError('Can only specify input shape for `image_tensor` '
                        'inputs.')
     placeholder_args['input_shape'] = input_shape
-  placeholder_tensor, input_tensors = input_placeholder_fn_map[input_type](
+  placeholder_tensor, input_tensors, placeholder_keys = input_placeholder_fn_map[input_type](
       **placeholder_args)
   outputs = _get_outputs_from_inputs(
       input_tensors=input_tensors,
+      placeholder_keys=placeholder_keys,
       detection_model=detection_model,
       output_collection_name=output_collection_name)
 
@@ -365,7 +383,7 @@ def build_detection_graph(input_type, detection_model, input_shape,
 
   if graph_hook_fn: graph_hook_fn()
 
-  return outputs, placeholder_tensor
+  return outputs, placeholder_tensor, placeholder_keys
 
 
 def _export_inference_graph(input_type,
@@ -386,7 +404,7 @@ def _export_inference_graph(input_type,
   saved_model_path = os.path.join(output_directory, 'saved_model')
   model_path = os.path.join(output_directory, 'model.ckpt')
 
-  outputs, placeholder_tensor = build_detection_graph(
+  outputs, placeholder_tensor, placeholder_keys = build_detection_graph(
       input_type=input_type,
       detection_model=detection_model,
       input_shape=input_shape,
@@ -444,7 +462,7 @@ def _export_inference_graph(input_type,
       initializer_nodes='')
 
   write_saved_model(saved_model_path, frozen_graph_def,
-                    placeholder_tensor, outputs)
+                    placeholder_tensor, placeholder_keys, outputs)
 
 
 def export_inference_graph(input_type,
