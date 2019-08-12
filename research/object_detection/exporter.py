@@ -256,7 +256,8 @@ def add_output_tensor_nodes(postprocessed_tensors,
   if masks is not None:
     outputs[detection_fields.detection_masks] = tf.identity(
         masks, name=detection_fields.detection_masks)
-  outputs["key"] = tf.constant(5)
+  outputs["key"] = tf.identity(
+        tf.constant(5), name="key")
   for output_key in outputs:
     tf.add_to_collection(output_collection_name, outputs[output_key])
 
