@@ -233,8 +233,8 @@ def add_output_tensor_nodes(postprocessed_tensors,placeholder_keys,
   scores = postprocessed_tensors.get(detection_fields.detection_scores)
   multiclass_scores = None# postprocessed_tensors.get(
       #detection_fields.detection_multiclass_scores)
-  box_classifier_features = postprocessed_tensors.get(
-      detection_fields.detection_features)
+  box_classifier_features = None #postprocessed_tensors.get(
+      # detection_fields.detection_features)
   raw_boxes = None#postprocessed_tensors.get(detection_fields.raw_detection_boxes)
   raw_scores = None#postprocessed_tensors.get(detection_fields.raw_detection_scores)
   classes = postprocessed_tensors.get(
