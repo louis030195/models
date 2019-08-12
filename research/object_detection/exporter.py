@@ -355,7 +355,7 @@ def _get_outputs_from_inputs(input_tensors, placeholder_keys, detection_model,
       preprocessed_inputs, true_image_shapes)
   postprocessed_tensors = detection_model.postprocess(
       output_tensors, true_image_shapes)
-  return add_output_tensor_nodes(postprocessed_tensors, placeholder_keys
+  return add_output_tensor_nodes(postprocessed_tensors, placeholder_keys,
                                  output_collection_name )
 
 
