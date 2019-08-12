@@ -217,12 +217,12 @@ def add_output_tensor_nodes(postprocessed_tensors,
   label_id_offset = 1
   boxes = postprocessed_tensors.get(detection_fields.detection_boxes)
   scores = postprocessed_tensors.get(detection_fields.detection_scores)
-  multiclass_scores = postprocessed_tensors.get(
-      detection_fields.detection_multiclass_scores)
+  multiclass_scores = None# postprocessed_tensors.get(
+      #detection_fields.detection_multiclass_scores)
   box_classifier_features = postprocessed_tensors.get(
       detection_fields.detection_features)
-  raw_boxes = postprocessed_tensors.get(detection_fields.raw_detection_boxes)
-  raw_scores = postprocessed_tensors.get(detection_fields.raw_detection_scores)
+  raw_boxes = None#postprocessed_tensors.get(detection_fields.raw_detection_boxes)
+  raw_scores = None#postprocessed_tensors.get(detection_fields.raw_detection_scores)
   classes = postprocessed_tensors.get(
       detection_fields.detection_classes) + label_id_offset
   keypoints = postprocessed_tensors.get(detection_fields.detection_keypoints)
