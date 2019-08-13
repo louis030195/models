@@ -112,7 +112,7 @@ def _image_tensor_input_placeholder(input_shape=None):
     input_shape = (None, None, None, 3)
 
   placeholder_keys = tf.placeholder(
-      dtype=tf.uint32,
+      dtype=tf.string,
       shape=[None],
       name='input_keys')
   input_tensor = tf.placeholder(
@@ -130,7 +130,7 @@ def _tf_example_input_placeholder():
       tf.string, shape=[None], name='tf_example')
 
   placeholder_keys = tf.placeholder(
-      dtype=tf.uint32,
+      dtype=tf.string,
       shape=[None],
       name='input_keys')
   def decode(tf_example_string_tensor):
@@ -158,7 +158,7 @@ def _encoded_image_string_tensor_input_placeholder():
       shape=[None],
       name='encoded_image_string_tensor')
   placeholder_keys = tf.placeholder(
-      dtype=tf.uint32,
+      dtype=tf.string,
       shape=[None],
       name='input_keys')
   def decode(encoded_image_string_tensor):
